@@ -23,7 +23,7 @@ dependencies {
     }
 
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.2")
-    implementation("org.apache.hive:hive-standalone-metastore:3.1.2")
+    implementation("org.apache.hive:hive-standalone-metastore:3.1.3")
     implementation("com.amazonaws:aws-lambda-java-core:1.2.1")
     implementation("com.amazonaws:aws-lambda-java-events:3.11.0")
 }
