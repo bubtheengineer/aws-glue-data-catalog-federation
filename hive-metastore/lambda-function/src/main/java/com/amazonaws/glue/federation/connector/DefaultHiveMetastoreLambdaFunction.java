@@ -40,13 +40,15 @@ import com.amazonaws.secretsmanager.caching.SecretCache;
 public class DefaultHiveMetastoreLambdaFunction extends HiveMetastoreRequestHandler {
 
     private final String ENV_THRIFT_URIS = "THRIFT_URIS";
-    private final SecretCache cache  = new SecretCache();
     private final String HIVE_KERBEROS_PRINCIPAL = "HIVE_KERBEROS_PRINCIPAL";
     private final String KDC = "KDC";
     private final String REALM = "REALM";
     private final String KERBEROS_KEYTAB_FILE = "/tmp/lambda.keytab";
     private final String KEYTAB_SECRET = "KEYTAB_SECRET";
-    private final String LAMBDA_KERBEROS_PRINCIPAL = "LAMBDA_KERBEROS_PRINCIPAL";
+    private final String CLIENT_KERBEROS_PRINCIPAL = "CLIENT_KERBEROS_PRINCIPAL";
+
+    //Use the secret cache to prevent loading the secret on every execution.  Must be declared static.
+    private final static SecretCache cache = new SecretCache();
 
     public IMetaStoreClient getMetastoreClient() {
         try {
@@ -91,7 +93,7 @@ public class DefaultHiveMetastoreLambdaFunction extends HiveMetastoreRequestHand
 
         // Login using Kerberos keytab file
         UserGroupInformation.setConfiguration(conf);
-        UserGroupInformation.loginUserFromKeytab(System.getenv(LAMBDA_KERBEROS_PRINCIPAL), KERBEROS_KEYTAB_FILE);
+        UserGroupInformation.loginUserFromKeytab(System.getenv(CLIENT_KERBEROS_PRINCIPAL), KERBEROS_KEYTAB_FILE);
     }
 
     private void writeKeyTabToFile(String keytabSecret, String filePath) throws IOException {
@@ -101,12 +103,17 @@ public class DefaultHiveMetastoreLambdaFunction extends HiveMetastoreRequestHand
         if (Files.exists(path)) {
             //Keytab exists, nothing to do
         } else {
-            final ByteBuffer keytabBuffer  = cache.getSecretBinary(keytabSecret);
+            if (cache == null) {
+                throw new RuntimeException("Secrets cache is null");
+            }
+            final ByteBuffer keytabBuffer = cache.getSecretBinary(keytabSecret);
+            if (keytabBuffer == null) {
+                throw new RuntimeException("Keytab secret is empty. Have you uploaded the keytab file to Secrets Manager?");
+            }
             try (RandomAccessFile file = new RandomAccessFile(new File(filePath), "rw");
             FileChannel channel = file.getChannel()) {
-        
-            // Write the ByteBuffer to the file channel
-            channel.write(keytabBuffer);
+                // Write the ByteBuffer to the file channel
+                channel.write(keytabBuffer);
             }
         }
 
