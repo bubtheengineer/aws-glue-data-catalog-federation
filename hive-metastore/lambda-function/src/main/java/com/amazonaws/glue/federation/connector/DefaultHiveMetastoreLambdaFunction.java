@@ -58,17 +58,15 @@ public class DefaultHiveMetastoreLambdaFunction extends HiveMetastoreRequestHand
 
     private Configuration getMetastoreConfiguration() {
         try {
-            //System.setProperty("sun.security.krb5.debug", "true");
-            System.setProperty("java.security.krb5.kdc", System.getenv(KDC));
-            System.setProperty("java.security.krb5.realm", System.getenv(REALM));
             // Create a new configuration. Automatically uses local 'metastore-site.xml' to override properties.
             Configuration conf = MetastoreConf.newMetastoreConf();
 
             // Override with Lambda env variables (given as input during SAM deployment)
             MetastoreConf.setVar(conf, MetastoreConf.ConfVars.THRIFT_URIS, System.getenv(ENV_THRIFT_URIS));
 
-            if (System.getenv(System.getenv(REALM)) != null)
+            if (System.getenv(REALM) != null) {
                 configureKerberos(conf);
+            }
 
             return conf;
         } catch (Exception ex) {
@@ -78,6 +76,9 @@ public class DefaultHiveMetastoreLambdaFunction extends HiveMetastoreRequestHand
 
     private void configureKerberos(Configuration conf) throws Exception {
         // Set configuration required for Kerberos authentication
+        if ("TRUE".equalsIgnoreCase(System.getenv("DEBUG")) ) {
+            System.setProperty("sun.security.krb5.debug", "true");
+        }
         System.setProperty("java.security.krb5.kdc", System.getenv(KDC));
         System.setProperty("java.security.krb5.realm", System.getenv(REALM));
         MetastoreConf.setVar(conf, MetastoreConf.ConfVars.KERBEROS_PRINCIPAL, System.getenv(HIVE_KERBEROS_PRINCIPAL));
