@@ -33,7 +33,7 @@ Parameters:
     MaxValue: 10240
     Default: 1024
   HiveMetastoreURIs:
-    Description: Hive Metastore Thrift URIs.
+    Description: Hive Metastore Thrift URIs.  Use the format thrift://<server>:<port>
     Type: String
   VPCSubnetIds:
     Description: Comma separated VPC subnet IDs where Hive Metastores are in.
@@ -48,8 +48,28 @@ Parameters:
       - true
       - false
     Default: false
+  Realm:
+    Description: The name of the Kerberos Realm.  If left blank, Kerberos auth will be disabled.
+    Type: String
+  KDC: 
+    Description: The DNS or IP of the Kerberos DC.  Use the format <name/IP>:<port>
+    Type: String
+  ClientKerberosPrincipal:
+    Description: The principal contained in the keytab file.  This needs read-only access to Hive.
+    Type: String
+  HiveKerberosPrincipal: 
+    Description: The principal of the Hive server.
+    Type: String
+  KeytabSecret:
+    Description: The name of the Secrets Manager secret to be retrieved by the lambda.  This is a binary secret containing the base64 encoded keytab file.
+    Type: String
 
 Resources:
+  SecretKeytabFile:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: An empty secret.  You must upload your Kerberos client keytab file as a binary secret.
+      Name: !Ref KeytabSecret
   LambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -63,6 +83,14 @@ Resources:
         Variables:
           THRIFT_URIS: !Ref HiveMetastoreURIs
           CONVERT_S3N: !Ref ConvertS3N
+          CLIENT_KERBEROS_PRINCIPAL: !Ref ClientKerberosPrincipal
+          HIVE_KERBEROS_PRINCIPAL: !Ref HiveKerberosPrincipal
+          KDC: !Ref KDC
+          REALM: !Ref Realm
+          KEYTAB_SECRET: !Ref KeytabSecret
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref SecretKeytabFile
       VpcConfig:
         SecurityGroupIds: !Ref VPCSecurityGroupIds
         SubnetIds: !Ref VPCSubnetIds

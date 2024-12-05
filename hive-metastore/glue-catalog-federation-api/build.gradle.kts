@@ -10,7 +10,7 @@ repositories {
 }
 
 dependencies {
-    implementation("software.amazon.awssdk:aws-core:2.17.157")
-    implementation("software.amazon.awssdk:sdk-core:2.17.157")
-    implementation("software.amazon.awssdk:annotations:2.17.157")
+    implementation("software.amazon.awssdk:aws-core:2.29.26")
+    implementation("software.amazon.awssdk:sdk-core:2.29.26")
+    implementation("software.amazon.awssdk:annotations:2.29.26")
 }
